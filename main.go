@@ -1,10 +1,12 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -16,16 +18,18 @@ type Film struct {
 	Director string
 }
 
+// go:embed index.html
+var indexFile string
+
 func main() {
 	fmt.Println("start serving...")
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
 
 	// GET /
 	getPage := func(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.ParseFiles("index.html"))
-
 		films := map[string][]Film{
 			"Films": {
 				{Title: "The Godfather", Director: "Francis Ford Coppola"},
@@ -47,8 +51,23 @@ func main() {
 		})
 	}
 	// Router and handlers
-	r.Get("/", getPage)
-	r.Post("/add-film/", addFilm)
+	router.Get("/", getPage)
+	router.Post("/add-film/", addFilm)
 
-	log.Fatal(http.ListenAndServe(":8000", r))
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "8000"
+	}
+
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: router,
+	}
+
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer server.Shutdown(nil)
 }
