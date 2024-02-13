@@ -1,13 +1,12 @@
 package main
 
 import (
-	_ "embed"
+	"embed"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,8 +17,14 @@ type Film struct {
 	Director string
 }
 
-// go:embed index.html
-var indexFile string
+var (
+	//go:embed templates
+	files embed.FS
+	pages = map[string]string{
+		"/":          "templates/index.html",
+		"/add-film/": "templates/index.html",
+	}
+)
 
 func main() {
 	fmt.Println("start serving...")
@@ -29,7 +34,20 @@ func main() {
 
 	// GET /
 	getPage := func(w http.ResponseWriter, r *http.Request) {
-		tmpl := template.Must(template.ParseFiles("index.html"))
+		page, ok := pages[r.RequestURI]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		tmpl, err := template.ParseFS(files, page)
+		if err != nil {
+			log.Printf("page %s not found in pages caches...", r.RequestURI)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+
 		films := map[string][]Film{
 			"Films": {
 				{Title: "The Godfather", Director: "Francis Ford Coppola"},
@@ -37,19 +55,40 @@ func main() {
 				{Title: "The Thing", Director: "John Carpenter"},
 			},
 		}
-		tmpl.Execute(w, films)
+		if err := tmpl.Execute(w, films); err != nil {
+			log.Printf("template %s execute error: %s", r.RequestURI, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 	// POST /add-film
 	addFilm := func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(1 * time.Second)
+		page, ok := pages[r.RequestURI]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		tmpl, err := template.ParseFS(files, page)
+		if err != nil {
+			log.Printf("page %s not found in pages caches...", r.RequestURI)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+
 		title := r.PostFormValue("title")
 		director := r.PostFormValue("director")
-		tmpl := template.Must(template.ParseFiles("index.html"))
-		tmpl.ExecuteTemplate(w, "film-list-element", Film{
+		if err := tmpl.ExecuteTemplate(w, "film-list-element", Film{
 			Title:    title,
 			Director: director,
-		})
+		}); err != nil {
+			log.Printf("template %s execute error: %s", r.RequestURI, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
+	http.FileServer(http.FS(files))
 	// Router and handlers
 	router.Get("/", getPage)
 	router.Post("/add-film/", addFilm)
