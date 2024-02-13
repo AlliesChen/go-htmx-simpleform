@@ -19,8 +19,10 @@ type Film struct {
 
 var (
 	//go:embed templates
-	files embed.FS
-	pages = map[string]string{
+	templates embed.FS
+	//go:embed static
+	static embed.FS
+	pages  = map[string]string{
 		"/":          "templates/index.html",
 		"/add-film/": "templates/index.html",
 	}
@@ -32,6 +34,9 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
+	fileServer := http.FileServer(http.FS(static))
+	router.Handle("/static/*", fileServer)
+
 	// GET /
 	getPage := func(w http.ResponseWriter, r *http.Request) {
 		page, ok := pages[r.RequestURI]
@@ -39,7 +44,7 @@ func main() {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		tmpl, err := template.ParseFS(files, page)
+		tmpl, err := template.ParseFS(templates, page)
 		if err != nil {
 			log.Printf("page %s not found in pages caches...", r.RequestURI)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -68,7 +73,7 @@ func main() {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		tmpl, err := template.ParseFS(files, page)
+		tmpl, err := template.ParseFS(templates, page)
 		if err != nil {
 			log.Printf("page %s not found in pages caches...", r.RequestURI)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -88,7 +93,6 @@ func main() {
 			return
 		}
 	}
-	http.FileServer(http.FS(files))
 	// Router and handlers
 	router.Get("/", getPage)
 	router.Post("/add-film/", addFilm)
