@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -68,6 +69,7 @@ func main() {
 	}
 	// POST /add-film
 	addFilm := func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1 * time.Second)
 		page, ok := pages[r.RequestURI]
 		if !ok {
 			w.WriteHeader(http.StatusNotFound)
