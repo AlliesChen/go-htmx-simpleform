@@ -8,6 +8,6 @@ Also, expanding the transition effect for loading and add chi for routing.
 
 Documents for dependencies:
 
-- [htmx](https://htmx.org/): used via CDN
-- [Tailwinnd CSS](https://tailwindcss.com/): used via CDN
-- [go-chi](https://go-chi.io/):
+- [htmx](https://htmx.org/): used via CDN.
+- [Tailwinnd CSS](https://tailwindcss.com/): writing atomic css.
+- [go-chi](https://go-chi.io/): for routing.
